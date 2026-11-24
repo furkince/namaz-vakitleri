@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yönetici Paneli - Namaz Vakitleri</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-100 text-stone-800 min-h-screen font-sans">
+
+  <!-- GİRİŞ EKRANI -->
+  <div id="loginView" class="max-w-sm mx-auto pt-16 px-4">
+    <div class="bg-white rounded-2xl shadow-md p-6 border border-stone-200">
+      <div class="text-center mb-6">
+        <div class="text-3xl mb-2">🔐</div>
+        <h1 class="text-xl font-bold text-stone-800">Yönetici Girişi</h1>
+        <p class="text-xs text-stone-500 mt-1">Ayet ve Hadis yönetim paneli</p>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-stone-600 mb-1">E-posta Adresi</label>
+          <input type="email" id="emailInput" required placeholder="ornek@gmail.com"
+            class="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-stone-600 mb-1">Şifre</label>
+          <input type="password" id="passwordInput" required placeholder="••••••••"
+            class="w-full rounded-xl border border-stone-300 px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-600" />
+        </div>
+        <div id="loginError" class="hidden text-xs text-red-600 bg-red-50 p-2.5 rounded-lg"></div>
+        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium py-2.5 rounded-xl text-sm transition">
+          Giriş Yap
+        </button>
+      </form>
+      <div class="mt-4 text-center">
+        <a href="index.html" class="text-xs text-stone-400 hover:text-stone-600">← Ana Uygulamaya Dön</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- YÖNETİM PANELİ EKRANI -->
+  <div id="dashboardView" class="hidden max-w-2xl mx-auto py-8 px-4 space-y-6">
+    <!-- Üst Çubuk -->
+    <div class="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-stone-200">
+      <div>
+        <h1 class="font-bold text-lg text-emerald-800">İçerik Yönetimi</h1>
+        <p id="adminEmailDisplay" class="text-xs text-stone-400"></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="index.html" class="text-xs bg-stone-100 hover:bg-stone-200 px-3 py-2 rounded-xl font-medium transition">
+          Uygulamayı Gör
+        </a>
+        <button id="logoutBtn" class="text-xs bg-red-50 hover:bg-red-100 text-red-700 px-3 py-2 rounded-xl font-medium transition">
+          Çıkış
+        </button>
+      </div>
+    </div>
+
+    <!-- Ekleme / Düzenleme Formu -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+      <h2 class="font-bold text-base mb-4 text-stone-800">Ayet ve Hadis Ekle / Düzenle</h2>
+      <form id="contentForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 mb-1">Gösterileceği Tarih</label>
+          <input type="date" id="dateInput" required
+            class="w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:outline-none focus:border-emerald-600" />
+          <p class="text-[11px] text-stone-400 mt-1">Aynı tarihe daha önce kayıt girdiyseniz otomatik yüklenir ve üzerine güncellenir.</p>
+        </div>
+
+        <div class="pt-2 border-t border-stone-100">
+          <label class="block text-xs font-semibold text-emerald-700 mb-1">Günün Ayeti (Türkçe Meali)</label>
+          <textarea id="ayetMetinInput" rows="3" required placeholder="Ayet mealini buraya yazın..."
+            class="w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:outline-none focus:border-emerald-600"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 mb-1">Ayet Kaynağı (Sure ve Ayet No)</label>
+          <input type="text" id="ayetKaynakInput" required placeholder="Örn: Bakara Suresi, 153. Ayet"
+            class="w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:outline-none focus:border-emerald-600" />
+        </div>
+
+        <div class="pt-2 border-t border-stone-100">
+          <label class="block text-xs font-semibold text-amber-700 mb-1">Günün Hadisi</label>
+          <textarea id="hadisMetinInput" rows="3" required placeholder="Hadis-i Şerif metnini buraya yazın..."
+            class="w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:outline-none focus:border-emerald-600"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 mb-1">Hadis Kaynağı</label>
+          <input type="text" id="hadisKaynakInput" required placeholder="Örn: Müslim, İman, 54"
+            class="w-full rounded-xl border border-stone-300 px-3.5 py-2 text-sm focus:outline-none focus:border-emerald-600" />
+        </div>
+
+        <div id="saveAlert" class="hidden text-xs font-medium p-3 rounded-xl"></div>
+
+        <button type="submit" id="saveBtn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-xl text-sm transition shadow-sm">
+          Kaydet ve Yayınla
+        </button>
+      </form>
+    </div>
+
+    <!-- Kayıtlı İçerikler Listesi -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-base text-stone-800">Kayıtlı İçerikler</h2>
+        <span id="totalCountBadge" class="text-xs bg-stone-100 text-stone-600 px-2.5 py-1 rounded-lg font-medium">0 kayıt</span>
+      </div>
+      <div id="recordsList" class="space-y-3">
+        <p class="text-xs text-stone-400">Kayıtlar yükleniyor...</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDbRs_6-dPwcGOzXMFn-SGEIR9CP418BsI",
+      authDomain: "namaz-vakitleri-a4f92.firebaseapp.com",
+      projectId: "namaz-vakitleri-a4f92",
+      storageBucket: "namaz-vakitleri-a4f92.firebasestorage.app",
+      messagingSenderId: "529165634820",
+      appId: "1:529165634820:web:00daf325a877eb6b049451"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const loginView = document.getElementById('loginView');
+    const dashboardView = document.getElementById('dashboardView');
+    const dateInput = document.getElementById('dateInput');
+
+    // Bugünün tarihini varsayılan olarak seç
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    dateInput.value = todayIso;
+
+    // Oturum Kontrolü
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        loginView.classList.add('hidden');
+        dashboardView.classList.remove('hidden');
+        document.getElementById('adminEmailDisplay').textContent = user.email;
+        await loadDateIntoForm(dateInput.value);
+        await loadAllRecords();
+      } else {
+        loginView.classList.remove('hidden');
+        dashboardView.classList.add('hidden');
+      }
+    });
+
+    // Giriş Formu
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errBox = document.getElementById('loginError');
+      errBox.classList.add('hidden');
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          document.getElementById('emailInput').value.trim(),
+          document.getElementById('passwordInput').value
+        );
+      } catch (err) {
+        errBox.textContent = "E-posta veya şifre hatalı. Lütfen kontrol edin.";
+        errBox.classList.remove('hidden');
+      }
+    });
+
+    // Çıkış Butonu
+    document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+    // Tarih değişince o tarihte kayıt varsa forma doldur
+    dateInput.addEventListener('change', (e) => loadDateIntoForm(e.target.value));
+
+    async function loadDateIntoForm(dateStr) {
+      if (!dateStr) return;
+      const snap = await getDoc(doc(db, "gunluk_icerikler", dateStr));
+      if (snap.exists()) {
+        const d = snap.data();
+        document.getElementById('ayetMetinInput').value = d.ayetMetin || '';
+        document.getElementById('ayetKaynakInput').value = d.ayetKaynak || '';
+        document.getElementById('hadisMetinInput').value = d.hadisMetin || '';
+        document.getElementById('hadisKaynakInput').value = d.hadisKaynak || '';
+      } else {
+        document.getElementById('ayetMetinInput').value = '';
+        document.getElementById('ayetKaynakInput').value = '';
+        document.getElementById('hadisMetinInput').value = '';
+        document.getElementById('hadisKaynakInput').value = '';
+      }
+    }
+
+    // Kaydetme Formu
+    document.getElementById('contentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveBtn');
+      const alertBox = document.getElementById('saveAlert');
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Kaydediliyor...";
+
+      const tarih = dateInput.value;
+      const payload = {
+        tarih,
+        ayetMetin: document.getElementById('ayetMetinInput').value.trim(),
+        ayetKaynak: document.getElementById('ayetKaynakInput').value.trim(),
+        hadisMetin: document.getElementById('hadisMetinInput').value.trim(),
+        hadisKaynak: document.getElementById('hadisKaynakInput').value.trim(),
+        guncelleme: new Date().toISOString()
+      };
+
+      try {
+        await setDoc(doc(db, "gunluk_icerikler", tarih), payload);
+        alertBox.textContent = `✓ ${tarih} tarihli içerik başarıyla kaydedildi ve yayınlandı!`;
+        alertBox.className = "text-xs font-medium p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200";
+        alertBox.classList.remove('hidden');
+        await loadAllRecords();
+      } catch (err) {
+        alertBox.textContent = "Hata oluştu: " + err.message;
+        alertBox.className = "text-xs font-medium p-3 rounded-xl bg-red-50 text-red-700";
+        alertBox.classList.remove('hidden');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Kaydet ve Yayınla";
+        setTimeout(() => alertBox.classList.add('hidden'), 4000);
+      }
+    });
+
+    // Tüm Kayıtları Listeleme
+    async function loadAllRecords() {
+      const listEl = document.getElementById('recordsList');
+      const snap = await getDocs(collection(db, "gunluk_icerikler"));
+      const items = [];
+      snap.forEach(d => items.push(d.data()));
+      items.sort((a, b) => (b.tarih || '').localeCompare(a.tarih || ''));
+
+      document.getElementById('totalCountBadge').textContent = `${items.length} kayıt`;
+
+      if (items.length === 0) {
+        listEl.innerHTML = `<p class="text-xs text-stone-400">Henüz kayıt eklenmemiş. Yukarıdaki formdan ilk kaydınızı ekleyebilirsiniz.</p>`;
+        return;
+      }
+
+      listEl.innerHTML = items.map(item => `
+        <div class="p-4 rounded-xl border border-stone-200 bg-stone-50/60 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg">${item.tarih}</span>
+            <div class="flex items-center gap-2">
+              <button onclick="editRecord('${item.tarih}')" class="text-xs text-blue-600 hover:underline font-medium">Düzenle</button>
+              <button onclick="deleteRecord('${item.tarih}')" class="text-xs text-red-600 hover:underline font-medium">Sil</button>
+            </div>
+          </div>
+          <p class="text-xs text-stone-700"><strong class="text-emerald-700">Ayet:</strong> ${item.ayetMetin} <span class="text-stone-400">(${item.ayetKaynak})</span></p>
+          <p class="text-xs text-stone-700"><strong class="text-amber-700">Hadis:</strong> ${item.hadisMetin} <span class="text-stone-400">(${item.hadisKaynak})</span></p>
+        </div>
+      `).join('');
+    }
+
+    window.editRecord = async function(tarih) {
+      dateInput.value = tarih;
+      await loadDateIntoForm(tarih);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteRecord = async function(tarih) {
+      if (!confirm(`${tarih} tarihli kaydı silmek istediğinize emin misiniz?`)) return;
+      await deleteDoc(doc(db, "gunluk_icerikler", tarih));
+      await loadAllRecords();
+    };
+  </script>
+</body>
+</html>

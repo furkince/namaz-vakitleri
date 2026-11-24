@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#065f46" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Namaz Vakitleri" />
+  <title>Namaz Vakitleri</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            emerald: {
+              850: '#064e3b',
+              950: '#022c22',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-stone-100 text-stone-800 dark:bg-stone-950 dark:text-stone-100 min-h-screen transition-colors duration-300">
+
+  <div class="max-w-md mx-auto min-h-screen flex flex-col justify-between pb-6">
+    <div>
+      <!-- Üst Başlık ve Konum Seçici -->
+      <header class="bg-emerald-800 dark:bg-emerald-950 text-white pt-6 pb-8 px-5 rounded-b-3xl shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🕌</span>
+            <h1 class="font-semibold text-lg tracking-tight">Namaz Vakitleri</h1>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="themeToggle" title="Gece / Gündüz Modu" class="p-2 rounded-full bg-white/10 hover:bg-white/20 transition text-sm">
+              🌙
+            </button>
+            <button id="toggleLocationBtn" class="text-xs bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-full font-medium transition">
+              Konum Seç
+            </button>
+          </div>
+        </div>
+
+        <!-- Seçili Şehir ve Tarih -->
+        <div class="text-center my-2">
+          <div id="selectedLocationTitle" class="text-2xl font-bold tracking-wide">Yükleniyor...</div>
+          <div id="gregorianDate" class="text-emerald-200 text-sm mt-1"></div>
+          <div id="hijriDate" class="text-emerald-300/90 text-xs mt-0.5"></div>
+        </div>
+
+        <!-- İl / İlçe Seçim Kutusu (Açılır/Kapanır) -->
+        <div id="locationPanel" class="hidden mt-4 pt-4 border-t border-white/15 space-y-3">
+          <div>
+            <label class="block text-xs text-emerald-200 mb-1">İl Seçiniz</label>
+            <select id="citySelect" class="w-full rounded-xl bg-white text-stone-900 px-3 py-2.5 text-sm font-medium focus:outline-none">
+              <option value="">İller yükleniyor...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-emerald-200 mb-1">İlçe Seçiniz</label>
+            <select id="districtSelect" class="w-full rounded-xl bg-white text-stone-900 px-3 py-2.5 text-sm font-medium focus:outline-none">
+              <option value="">Önce il seçiniz</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Canlı Geri Sayım Kartı -->
+        <div class="mt-5 bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
+          <div id="nextPrayerLabel" class="text-xs uppercase tracking-widest text-emerald-200 font-medium">
+            Vakit Hesaplanıyor
+          </div>
+          <div id="countdownTimer" class="text-4xl font-bold tracking-wider my-1 font-mono">
+            --:--:--
+          </div>
+          <div id="statusBadge" class="text-[11px] text-emerald-200/80">
+            Diyanet Takvimi
+          </div>
+        </div>
+      </header>
+
+      <!-- 6 Vakit Listesi -->
+      <main class="px-4 -mt-4 space-y-4">
+        <section class="bg-white dark:bg-stone-900 rounded-2xl shadow-sm border border-stone-200/80 dark:border-stone-800 p-2">
+          <div id="prayerList" class="divide-y divide-stone-100 dark:divide-stone-800">
+            <div class="p-6 text-center text-sm text-stone-400">Vakitler yükleniyor...</div>
+          </div>
+        </section>
+
+        <!-- Günün Ayeti Kartı -->
+        <section class="bg-white dark:bg-stone-900 rounded-2xl shadow-sm border border-stone-200/80 dark:border-stone-800 p-5">
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg">
+              Günün Ayeti
+            </span>
+            <button onclick="shareText('ayet')" class="text-xs text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition">
+              Kopyala / Paylaş
+            </button>
+          </div>
+          <p id="ayetText" class="text-stone-700 dark:text-stone-200 text-[15px] leading-relaxed">
+            "Şüphesiz güçlükle beraber bir kolaylık vardır. Gerçekten, güçlükle beraber bir kolaylık vardır."
+          </p>
+          <p id="ayetSource" class="text-xs font-medium text-stone-400 mt-3 text-right">
+            İnşirah Suresi, 5-6. Ayetler
+          </p>
+        </section>
+
+        <!-- Günün Hadisi Kartı -->
+        <section class="bg-white dark:bg-stone-900 rounded-2xl shadow-sm border border-stone-200/80 dark:border-stone-800 p-5">
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 rounded-lg">
+              Günün Hadisi
+            </span>
+            <button onclick="shareText('hadis')" class="text-xs text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 transition">
+              Kopyala / Paylaş
+            </button>
+          </div>
+          <p id="hadisText" class="text-stone-700 dark:text-stone-200 text-[15px] leading-relaxed">
+            "İki nimet vardır ki, insanların çoğu bu nimetleri kullanmakta aldanmıştır: Sağlık ve boş vakit."
+          </p>
+          <p id="hadisSource" class="text-xs font-medium text-stone-400 mt-3 text-right">
+            Buhârî, Rikâk, 1
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <!-- Alt Bilgi -->
+    <footer class="mt-8 px-5 text-center text-xs text-stone-400 flex items-center justify-between">
+      <span>Reklamsız • Çevrimdışı Destekli</span>
+      <a href="admin.html" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition flex items-center gap-1">
+        <span>🔒</span> Yönetici
+      </a>
+    </footer>
+  </div>
+
+  <!-- Kopyalandı Bildirimi -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-xs px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300">
+    Panoya kopyalandı
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDbRs_6-dPwcGOzXMFn-SGEIR9CP418BsI",
+      authDomain: "namaz-vakitleri-a4f92.firebaseapp.com",
+      projectId: "namaz-vakitleri-a4f92",
+      storageBucket: "namaz-vakitleri-a4f92.firebasestorage.app",
+      messagingSenderId: "529165634820",
+      appId: "1:529165634820:web:00daf325a877eb6b049451"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Tema Yönetimi
+    const themeToggle = document.getElementById('themeToggle');
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    }
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      themeToggle.textContent = isDark ? '☀️' : '🌙';
+    });
+
+    // Konum Paneli Aç/Kapa
+    const locationPanel = document.getElementById('locationPanel');
+    document.getElementById('toggleLocationBtn').addEventListener('click', () => {
+      locationPanel.classList.toggle('hidden');
+    });
+
+    const citySelect = document.getElementById('citySelect');
+    const districtSelect = document.getElementById('districtSelect');
+    let cachedTimes = [];
+    let countdownInterval = null;
+
+    // Varsayılan Konum (Ankara / Çankaya - İlk açılışta boş kalmaması için)
+    let currentLocation = JSON.parse(localStorage.getItem('selectedLocation')) || {
+      cityId: "506",
+      cityName: "ANKARA",
+      districtId: "9206",
+      districtName: "ÇANKAYA"
+    };
+
+    function formatDisplayLocation(city, district) {
+      if (!district || city === district) return city;
+      return `${city} / ${district}`;
+    }
+
+    async function loadCities() {
+      try {
+        let cities = JSON.parse(localStorage.getItem('tr_cities'));
+        if (!cities) {
+          const res = await fetch('https://ezanvakti.emushaf.net/sehirler/2');
+          cities = await res.json();
+          cities.sort((a, b) => a.SehirAdi.localeCompare(b.SehirAdi, 'tr'));
+          localStorage.setItem('tr_cities', JSON.stringify(cities));
+        }
+        citySelect.innerHTML = cities.map(c =>
+          `<option value="${c.SehirID}" ${c.SehirID === currentLocation.cityId ? 'selected' : ''}>${c.SehirAdi}</option>`
+        ).join('');
+        await loadDistricts(currentLocation.cityId, currentLocation.districtId);
+      } catch (e) {
+        console.warn("Şehir listesi çevrimdışı modda:", e);
+      }
+    }
+
+    async function loadDistricts(cityId, preselectDistrictId = null) {
+      try {
+        const cacheKey = `tr_districts_${cityId}`;
+        let districts = JSON.parse(localStorage.getItem(cacheKey));
+        if (!districts) {
+          const res = await fetch(`https://ezanvakti.emushaf.net/ilceler/${cityId}`);
+          districts = await res.json();
+          districts.sort((a, b) => a.IlceAdi.localeCompare(b.IlceAdi, 'tr'));
+          localStorage.setItem(cacheKey, JSON.stringify(districts));
+        }
+        districtSelect.innerHTML = districts.map(d =>
+          `<option value="${d.IlceID}" ${d.IlceID === preselectDistrictId ? 'selected' : ''}>${d.IlceAdi}</option>`
+        ).join('');
+
+        if (!preselectDistrictId && districts.length > 0) {
+          const selectedOpt = districtSelect.options[0];
+          currentLocation.districtId = selectedOpt.value;
+          currentLocation.districtName = selectedOpt.text;
+          localStorage.setItem('selectedLocation', JSON.stringify(currentLocation));
+          await fetchPrayerTimes(currentLocation.districtId, true);
+        }
+      } catch (e) {
+        console.warn("İlçe listesi çevrimdışı modda:", e);
+      }
+    }
+
+    citySelect.addEventListener('change', async (e) => {
+      const cityId = e.target.value;
+      const cityName = e.target.options[e.target.selectedIndex].text;
+      currentLocation.cityId = cityId;
+      currentLocation.cityName = cityName;
+      await loadDistricts(cityId, null);
+    });
+
+    districtSelect.addEventListener('change', async (e) => {
+      const districtId = e.target.value;
+      const districtName = e.target.options[e.target.selectedIndex].text;
+      currentLocation.districtId = districtId;
+      currentLocation.districtName = districtName;
+      localStorage.setItem('selectedLocation', JSON.stringify(currentLocation));
+      locationPanel.classList.add('hidden');
+      await fetchPrayerTimes(districtId, true);
+    });
+
+    function getTodayFormatted() {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      return `${dd}.${mm}.${yyyy}`;
+    }
+
+    async function fetchPrayerTimes(districtId, forceRefresh = false) {
+      document.getElementById('selectedLocationTitle').textContent =
+        formatDisplayLocation(currentLocation.cityName, currentLocation.districtName);
+
+      const cacheKey = `vakitler_cache_${districtId}`;
+      const localData = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+      const todayStr = getTodayFormatted();
+
+      // Önbellekte bugünün verisi varsa ve zorunlu yenileme değilse anında göster
+      if (localData && localData.some(item => item.MiladiTarihKisa === todayStr) && !forceRefresh) {
+        cachedTimes = localData;
+        renderTodayTimes();
+        document.getElementById('statusBadge').textContent = 'Diyanet Takvimi • Çevrimdışı Hazır';
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://ezanvakti.emushaf.net/vakitler/${districtId}`);
+        if (!res.ok) throw new Error('API hatası');
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          cachedTimes = data;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          renderTodayTimes();
+          document.getElementById('statusBadge').textContent = 'Diyanet Takvimi • 30 Gün Önbelleklendi';
+          return;
+        }
+      } catch (err) {
+        // Yedek Diyanet Metodu (Aladhan Method 13)
+        try {
+          const now = new Date();
+          const resAlt = await fetch(`https://api.aladhan.com/v1/calendarByCity/${now.getFullYear()}/${now.getMonth() + 1}?city=${encodeURIComponent(currentLocation.cityName)}&country=Turkey&method=13`);
+          const jsonAlt = await resAlt.json();
+          if (jsonAlt && jsonAlt.data) {
+            cachedTimes = jsonAlt.data.map(d => ({
+              MiladiTarihKisa: d.date.gregorian.date.replace(/-/g, '.'),
+              MiladiTarihUzun: d.date.readable,
+              HicriTarihUzun: `${d.date.hijri.day} ${d.date.hijri.month.en} ${d.date.hijri.year}`,
+              Imsak: d.timings.Imsak.split(' ')[0],
+              Gunes: d.timings.Sunrise.split(' ')[0],
+              Ogle: d.timings.Dhuhr.split(' ')[0],
+              Ikindi: d.timings.Asr.split(' ')[0],
+              Aksam: d.timings.Maghrib.split(' ')[0],
+              Yatsi: d.timings.Isha.split(' ')[0]
+            }));
+            localStorage.setItem(cacheKey, JSON.stringify(cachedTimes));
+            renderTodayTimes();
+            document.getElementById('statusBadge').textContent = 'Diyanet Hesaplama Sistemi';
+            return;
+          }
+        } catch (e2) {
+          if (localData) {
+            cachedTimes = localData;
+            renderTodayTimes();
+            document.getElementById('statusBadge').textContent = 'Çevrimdışı Kayıttan Gösteriliyor';
+          }
+        }
+      }
+    }
+
+    function parseTimeToday(timeStr, dayOffset = 0) {
+      const [h, m] = timeStr.split(':').map(Number);
+      const d = new Date();
+      d.setDate(d.getDate() + dayOffset);
+      d.setHours(h, m, 0, 0);
+      return d;
+    }
+
+    function renderTodayTimes() {
+      const todayStr = getTodayFormatted();
+      const todayIndex = cachedTimes.findIndex(item => item.MiladiTarihKisa === todayStr);
+      const todayData = todayIndex !== -1 ? cachedTimes[todayIndex] : cachedTimes[0];
+      const tomorrowData = (todayIndex !== -1 && cachedTimes[todayIndex + 1]) ? cachedTimes[todayIndex + 1] : todayData;
+
+      if (!todayData) return;
+
+      document.getElementById('gregorianDate').textContent = todayData.MiladiTarihUzun || todayStr;
+      document.getElementById('hijriDate').textContent = todayData.HicriTarihUzun || '';
+
+      const prayers = [
+        { key: 'Imsak', name: 'İmsak', time: todayData.Imsak },
+        { key: 'Gunes', name: 'Güneş', time: todayData.Gunes },
+        { key: 'Ogle', name: 'Öğle', time: todayData.Ogle },
+        { key: 'Ikindi', name: 'İkindi', time: todayData.Ikindi },
+        { key: 'Aksam', name: 'Akşam', time: todayData.Aksam },
+        { key: 'Yatsi', name: 'Yatsı', time: todayData.Yatsi }
+      ];
+
+      function updateCountdownAndHighlight() {
+        const now = new Date();
+        let nextPrayer = null;
+        let activeKey = null;
+
+        for (let i = 0; i < prayers.length; i++) {
+          const pDate = parseTimeToday(prayers[i].time, 0);
+          if (now < pDate) {
+            nextPrayer = { name: prayers[i].name, target: pDate };
+            activeKey = i === 0 ? 'Yatsi' : prayers[i - 1].key;
+            break;
+          }
+        }
+
+        if (!nextPrayer) {
+          activeKey = 'Yatsi';
+          nextPrayer = {
+            name: 'İmsak',
+            target: parseTimeToday(tomorrowData.Imsak, 1)
+          };
+        }
+
+        const diff = Math.max(0, nextPrayer.target - now);
+        const hrs = String(Math.floor(diff / 3600000)).padStart(2, '0');
+        const mins = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+        const secs = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+
+        document.getElementById('nextPrayerLabel').textContent = `${nextPrayer.name} Vaktine Kalan Süre`;
+        document.getElementById('countdownTimer').textContent = `${hrs}:${mins}:${secs}`;
+
+        const listEl = document.getElementById('prayerList');
+        listEl.innerHTML = prayers.map(p => {
+          const isActive = p.key === activeKey;
+          return `
+            <div class="flex items-center justify-between px-4 py-3.5 rounded-xl transition ${
+              isActive
+                ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 font-bold'
+                : 'text-stone-700 dark:text-stone-300'
+            }">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full ${isActive ? 'bg-emerald-600 animate-pulse' : 'bg-stone-300 dark:bg-stone-700'}"></span>
+                <span class="text-[15px]">${p.name}</span>
+              </div>
+              <span class="text-base font-mono tracking-wide">${p.time}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      updateCountdownAndHighlight();
+      countdownInterval = setInterval(updateCountdownAndHighlight, 1000);
+    }
+
+    // Firebase'den Günün Ayeti ve Hadisini Çekme
+    async function loadDailyContent() {
+      const now = new Date();
+      const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      // Önce yerel önbellekten hızlı göster
+      const cachedDaily = JSON.parse(localStorage.getItem('daily_content_cache') || 'null');
+      if (cachedDaily) {
+        applyContentToUI(cachedDaily);
+      }
+
+      try {
+        // 1. Önce bugünün tarihine özel kayıt var mı bak
+        const todayRef = doc(db, "gunluk_icerikler", isoDate);
+        const todaySnap = await getDoc(todayRef);
+
+        if (todaySnap.exists()) {
+          const data = todaySnap.data();
+          localStorage.setItem('daily_content_cache', JSON.stringify(data));
+          applyContentToUI(data);
+          return;
+        }
+
+        // 2. Bugüne özel kayıt yoksa yedek havuzdan günün sırasına göre seç
+        const allSnap = await getDocs(collection(db, "gunluk_icerikler"));
+        if (!allSnap.empty) {
+          const pool = [];
+          allSnap.forEach(d => pool.push(d.data()));
+          pool.sort((a, b) => (a.tarih || '').localeCompare(b.tarih || ''));
+          const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+          const picked = pool[dayOfYear % pool.length];
+          localStorage.setItem('daily_content_cache', JSON.stringify(picked));
+          applyContentToUI(picked);
+        }
+      } catch (err) {
+        console.warn("İçerik çevrimdışı önbellekten gösteriliyor:", err);
+      }
+    }
+
+    function applyContentToUI(data) {
+      if (data.ayetMetin) document.getElementById('ayetText').textContent = `"${data.ayetMetin}"`;
+      if (data.ayetKaynak) document.getElementById('ayetSource').textContent = data.ayetKaynak;
+      if (data.hadisMetin) document.getElementById('hadisText').textContent = `"${data.hadisMetin}"`;
+      if (data.hadisKaynak) document.getElementById('hadisSource').textContent = data.hadisKaynak;
+    }
+
+    // Paylaş / Kopyala Fonksiyonu
+    window.shareText = async function(type) {
+      const text = type === 'ayet'
+        ? `Günün Ayeti:\n${document.getElementById('ayetText').textContent}\n(${document.getElementById('ayetSource').textContent})`
+        : `Günün Hadisi:\n${document.getElementById('hadisText').textContent}\n(${document.getElementById('hadisSource').textContent})`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ text });
+          return;
+        } catch (e) {}
+      }
+      await navigator.clipboard.writeText(text);
+      const toast = document.getElementById('toast');
+      toast.classList.remove('opacity-0');
+      setTimeout(() => toast.classList.add('opacity-0'), 2000);
+    };
+
+    // Service Worker Kaydı (PWA & Çevrimdışı Çalışma)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    // Başlat
+    fetchPrayerTimes(currentLocation.districtId, false);
+    loadCities();
+    loadDailyContent();
+  </script>
+</body>
+</html>
