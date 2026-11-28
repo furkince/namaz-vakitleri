@@ -10,7 +10,7 @@
   <title>Namaz Vakitleri</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/svg+xml" href="icon.svg" />
-  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -32,6 +32,10 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
+    #compassDial {
+      transition: transform 0.15s ease-out;
+      will-change: transform;
+    }
   </style>
 </head>
 <body class="bg-stone-100 text-stone-800 dark:bg-stone-950 dark:text-stone-100 min-h-screen transition-colors duration-300">
@@ -39,7 +43,7 @@
   <div class="max-w-md mx-auto min-h-screen flex flex-col justify-between pb-6">
     <div>
       <!-- Üst Başlık ve Konum Seçici -->
-      <header class="bg-emerald-800 dark:bg-emerald-950 text-white pt-6 pb-8 px-5 rounded-b-3xl shadow-lg">
+      <header class="bg-emerald-800 dark:bg-emerald-950 text-white pt-6 pb-7 px-5 rounded-b-3xl shadow-lg">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
             <span class="text-xl">🕌</span>
@@ -78,8 +82,21 @@
           </div>
         </div>
 
+        <!-- Sekme Geçiş Çubuğu (Vakitler / Kıble) -->
+        <div class="mt-5 grid grid-cols-2 gap-1.5 bg-black/20 p-1 rounded-2xl">
+          <button id="tabVakitlerBtn" onclick="switchTab('vakitler')" class="py-2 rounded-xl text-xs font-semibold bg-white text-emerald-900 shadow-sm transition">
+            🕌 Vakitler
+          </button>
+          <button id="tabKibleBtn" onclick="switchTab('kible')" class="py-2 rounded-xl text-xs font-semibold text-emerald-100 hover:bg-white/10 transition">
+            🧭 Kıble Pusulası
+          </button>
+        </div>
+      </header>
+
+      <!-- 1. SEKME: NAMAZ VAKİTLERİ -->
+      <main id="vakitlerSection" class="px-4 mt-4 space-y-4">
         <!-- Canlı Geri Sayım Kartı -->
-        <div class="mt-5 bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
+        <section class="bg-emerald-800 dark:bg-emerald-900 text-white rounded-2xl p-4 text-center shadow-sm">
           <div id="nextPrayerLabel" class="text-xs uppercase tracking-widest text-emerald-200 font-medium">
             Vakit Hesaplanıyor
           </div>
@@ -89,11 +106,9 @@
           <div id="statusBadge" class="text-[11px] text-emerald-200/80">
             Diyanet Takvimi
           </div>
-        </div>
-      </header>
+        </section>
 
-      <!-- 6 Vakit Listesi -->
-      <main class="px-4 -mt-4 space-y-4">
+        <!-- 6 Vakit Listesi -->
         <section class="bg-white dark:bg-stone-900 rounded-2xl shadow-sm border border-stone-200/80 dark:border-stone-800 p-2">
           <div id="prayerList" class="divide-y divide-stone-100 dark:divide-stone-800">
             <div class="p-6 text-center text-sm text-stone-400">Vakitler yükleniyor...</div>
@@ -136,6 +151,80 @@
           </p>
         </section>
       </main>
+
+      <!-- 2. SEKME: KIBLE PUSULASI -->
+      <main id="kibleSection" class="hidden px-4 mt-4 space-y-4">
+        <section id="qiblaCard" class="bg-white dark:bg-stone-900 rounded-2xl shadow-sm border-2 border-stone-200/80 dark:border-stone-800 p-5 text-center transition-colors duration-300">
+          <!-- Üst Bilgi Rozeti -->
+          <div class="flex items-center justify-between text-xs mb-3">
+            <span id="qiblaSourceBadge" class="bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 px-2.5 py-1 rounded-lg font-medium">
+              Şehir Merkezine Göre
+            </span>
+            <button id="gpsBtn" onclick="usePreciseGPS()" class="text-emerald-700 dark:text-emerald-400 font-semibold hover:underline">
+              📍 GPS Konumu Kullan
+            </button>
+          </div>
+
+          <!-- Durum Mesajı -->
+          <div id="qiblaAlignBanner" class="text-xs font-semibold py-2 px-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 mb-4">
+            Pusulayı başlatıp telefonu yere paralel tutun
+          </div>
+
+          <!-- Pusula Kadranı -->
+          <div class="relative w-64 h-64 mx-auto my-2 flex items-center justify-center">
+            <!-- Telefonun Üst Yön Çizgisi (Sabit) -->
+            <div id="topAlignmentMarker" class="absolute -top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
+              <div class="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[12px] border-t-emerald-600"></div>
+            </div>
+
+            <!-- Dönen Pusula Diski -->
+            <svg id="compassDial" viewBox="0 0 260 260" class="w-full h-full drop-shadow-sm">
+              <!-- Dış Çember -->
+              <circle cx="130" cy="130" r="120" fill="none" stroke="currentColor" stroke-width="2" class="text-stone-200 dark:text-stone-700" />
+              <circle cx="130" cy="130" r="96" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5" class="text-stone-300 dark:text-stone-700" />
+
+              <!-- Ana Yön Harfleri -->
+              <text x="130" y="28" text-anchor="middle" font-size="14" font-weight="bold" fill="#dc2626">K</text>
+              <text x="234" y="135" text-anchor="middle" font-size="13" font-weight="bold" fill="currentColor" class="text-stone-500">D</text>
+              <text x="130" y="242" text-anchor="middle" font-size="13" font-weight="bold" fill="currentColor" class="text-stone-500">G</text>
+              <text x="26" y="135" text-anchor="middle" font-size="13" font-weight="bold" fill="currentColor" class="text-stone-500">B</text>
+
+              <!-- Kıble İbresi (Açıya Göre Döner) -->
+              <g id="qiblaPointerGroup" transform="rotate(155 130 130)">
+                <line x1="130" y1="130" x2="130" y2="34" stroke="#059669" stroke-width="4" stroke-linecap="round" />
+                <polygon points="130,22 121,40 139,40" fill="#059669" />
+                <!-- Kâbe Simgesi -->
+                <rect x="121" y="46" width="18" height="18" rx="3" fill="#1c1917" stroke="#fbbf24" stroke-width="2" />
+              </g>
+
+              <!-- Merkez Nokta -->
+              <circle cx="130" cy="130" r="7" fill="#059669" />
+              <circle cx="130" cy="130" r="3" fill="#ffffff" />
+            </svg>
+          </div>
+
+          <!-- Açı ve Mesafe Bilgileri -->
+          <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-stone-100 dark:border-stone-800">
+            <div class="bg-stone-50 dark:bg-stone-800/60 p-3 rounded-xl">
+              <div class="text-[11px] text-stone-400">Kıble Açısı (Kuzeyden)</div>
+              <div id="qiblaAngleText" class="text-lg font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">--°</div>
+            </div>
+            <div class="bg-stone-50 dark:bg-stone-800/60 p-3 rounded-xl">
+              <div class="text-[11px] text-stone-400">Kâbe'ye Uzaklık</div>
+              <div id="qiblaDistanceText" class="text-lg font-bold text-stone-700 dark:text-stone-200 mt-0.5">-- km</div>
+            </div>
+          </div>
+
+          <!-- Pusula Başlat Butonu (iOS ve Android İzin Tetikleyici) -->
+          <button id="startCompassBtn" onclick="startCompassSensor()" class="mt-4 w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-xl text-sm transition shadow-sm">
+            🧭 Canlı Pusulayı Başlat
+          </button>
+
+          <p class="text-[11px] text-stone-400 mt-3 leading-relaxed">
+            İpucu: Doğru ölçüm için telefonunuzu metal eşyalardan uzak tutun ve havada 8 çizerek kalibre edin.
+          </p>
+        </section>
+      </main>
     </div>
 
     <!-- Alt Bilgi -->
@@ -168,6 +257,196 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // 81 İl Merkez Koordinatları (İzin gerektirmeden anında Kıble açısı hesaplamak için)
+    const TR_CITY_COORDS = {
+      ADANA:[37.00,35.32], ADIYAMAN:[37.76,38.28], AFYONKARAHISAR:[38.75,30.54], AFYON:[38.75,30.54],
+      AGRI:[39.72,43.05], AKSARAY:[38.37,34.03], AMASYA:[40.65,35.83], ANKARA:[39.93,32.86],
+      ANTALYA:[36.89,30.71], ARDAHAN:[41.11,42.70], ARTVIN:[41.18,41.82], AYDIN:[37.84,27.84],
+      BALIKESIR:[39.65,27.88], BARTIN:[41.63,32.34], BATMAN:[37.88,41.13], BAYBURT:[40.26,40.22],
+      BILECIK:[40.14,29.98], BINGOL:[38.88,40.50], BITLIS:[38.40,42.11], BOLU:[40.73,31.61],
+      BURDUR:[37.72,30.29], BURSA:[40.19,29.06], CANAKKALE:[40.15,26.41], CANKIRI:[40.60,33.62],
+      CORUM:[40.55,34.95], DENIZLI:[37.77,29.09], DIYARBAKIR:[37.91,40.22], DUZCE:[40.84,31.16],
+      EDIRNE:[41.68,26.56], ELAZIG:[38.67,39.22], ERZINCAN:[39.75,39.49], ERZURUM:[39.90,41.27],
+      ESKISEHIR:[39.78,30.52], GAZIANTEP:[37.07,37.38], GIRESUN:[40.91,38.39], GUMUSHANE:[40.46,39.48],
+      HAKKARI:[37.57,43.74], HATAY:[36.20,36.16], IGDIR:[39.92,44.04], ISPARTA:[37.76,30.55],
+      ISTANBUL:[41.01,28.98], IZMIR:[38.42,27.14], KAHRAMANMARAS:[37.58,36.93], KARABUK:[41.20,32.62],
+      KARAMAN:[37.18,33.23], KARS:[40.60,43.10], KASTAMONU:[41.38,33.78], KAYSERI:[38.73,35.48],
+      KIRIKKALE:[39.85,33.51], KIRKLARELI:[41.73,27.22], KIRSEHIR:[39.15,34.17], KILIS:[36.72,37.12],
+      KOCAELI:[40.77,29.94], KONYA:[37.87,32.49], KUTAHYA:[39.42,29.98], MALATYA:[38.35,38.31],
+      MANISA:[38.61,27.43], MARDIN:[37.31,40.73], MERSIN:[36.80,34.64], ICEL:[36.80,34.64],
+      MUGLA:[37.21,28.36], MUS:[38.73,41.49], NEVSEHIR:[38.62,34.71], NIGDE:[37.97,34.68],
+      ORDU:[40.98,37.88], OSMANIYE:[37.07,36.25], RIZE:[41.02,40.52], SAKARYA:[40.77,30.40],
+      SAMSUN:[41.29,36.33], SIIRT:[37.93,41.94], SINOP:[42.03,35.15], SIVAS:[39.75,37.02],
+      SANLIURFA:[37.17,38.79], SIRNAK:[37.52,42.46], TEKIRDAG:[40.98,27.51], TOKAT:[40.31,36.55],
+      TRABZON:[41.00,39.72], TUNCELI:[39.11,39.55], USAK:[38.68,29.41], VAN:[38.49,43.38],
+      YALOVA:[40.65,29.27], YOZGAT:[39.82,34.81], ZONGULDAK:[41.45,31.79]
+    };
+
+    function normalizeTr(str) {
+      return (str || '')
+        .toLocaleUpperCase('tr-TR')
+        .replace(/İ/g, 'I').replace(/Ş/g, 'S').replace(/Ğ/g, 'G')
+        .replace(/Ü/g, 'U').replace(/Ö/g, 'O').replace(/Ç/g, 'C').trim();
+    }
+
+    // Sekme Değiştirme
+    window.switchTab = function(tab) {
+      const vakitlerSec = document.getElementById('vakitlerSection');
+      const kibleSec = document.getElementById('kibleSection');
+      const btnV = document.getElementById('tabVakitlerBtn');
+      const btnK = document.getElementById('tabKibleBtn');
+
+      if (tab === 'vakitler') {
+        vakitlerSec.classList.remove('hidden');
+        kibleSec.classList.add('hidden');
+        btnV.className = 'py-2 rounded-xl text-xs font-semibold bg-white text-emerald-900 shadow-sm transition';
+        btnK.className = 'py-2 rounded-xl text-xs font-semibold text-emerald-100 hover:bg-white/10 transition';
+      } else {
+        vakitlerSec.classList.add('hidden');
+        kibleSec.classList.remove('hidden');
+        btnK.className = 'py-2 rounded-xl text-xs font-semibold bg-white text-emerald-900 shadow-sm transition';
+        btnV.className = 'py-2 rounded-xl text-xs font-semibold text-emerald-100 hover:bg-white/10 transition';
+        updateQiblaFromCity();
+      }
+    };
+
+    // Kıble Açısı ve Kâbe Mesafesi Hesaplama
+    let currentQiblaAngle = 155;
+    let usingGPS = false;
+
+    function calculateQibla(lat, lon) {
+      const kaabaLat = 21.422487 * Math.PI / 180;
+      const kaabaLon = 39.826206 * Math.PI / 180;
+      const userLat = lat * Math.PI / 180;
+      const userLon = lon * Math.PI / 180;
+
+      const dLon = kaabaLon - userLon;
+      const y = Math.sin(dLon);
+      const x = Math.cos(userLat) * Math.tan(kaabaLat) - Math.sin(userLat) * Math.cos(dLon);
+      let bearing = Math.atan2(y, x) * 180 / Math.PI;
+      bearing = (bearing + 360) % 360;
+
+      // Haversine Mesafe (km)
+      const R = 6371;
+      const dLat = kaabaLat - userLat;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(userLat) * Math.cos(kaabaLat) * Math.sin(dLon / 2) ** 2;
+      const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+
+      currentQiblaAngle = bearing;
+      document.getElementById('qiblaAngleText').textContent = `${bearing.toFixed(1)}°`;
+      document.getElementById('qiblaDistanceText').textContent = `${dist.toLocaleString('tr-TR')} km`;
+      document.getElementById('qiblaPointerGroup').setAttribute('transform', `rotate(${bearing} 130 130)`);
+    }
+
+    function updateQiblaFromCity() {
+      if (usingGPS) return;
+      const key = normalizeTr(currentLocation.cityName);
+      const coords = TR_CITY_COORDS[key] || [39.93, 32.86];
+      calculateQibla(coords[0], coords[1]);
+      document.getElementById('qiblaSourceBadge').textContent = `${currentLocation.cityName} Merkezine Göre`;
+    }
+
+    window.usePreciseGPS = function() {
+      if (!navigator.geolocation) {
+        alert('Cihazınız GPS konum özelliğini desteklemiyor.');
+        return;
+      }
+      const gpsBtn = document.getElementById('gpsBtn');
+      gpsBtn.textContent = 'Konum alınıyor...';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          usingGPS = true;
+          calculateQibla(pos.coords.latitude, pos.coords.longitude);
+          document.getElementById('qiblaSourceBadge').textContent = '📍 GPS Hassas Konum';
+          gpsBtn.textContent = '✓ GPS Aktif';
+        },
+        () => {
+          gpsBtn.textContent = '📍 GPS Konumu Kullan';
+          alert('Konum izni verilmedi. Seçili il merkezine göre hesaplama devam ediyor.');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    };
+
+    // Pusula Sensörü (iOS ve Android)
+    let continuousHeading = 0;
+    let lastRawHeading = null;
+    let compassActive = false;
+    let wasAligned = false;
+
+    function handleOrientation(event) {
+      let heading = null;
+      if (typeof event.webkitCompassHeading === 'number') {
+        heading = event.webkitCompassHeading; // iOS Safari
+      } else if (event.alpha !== null) {
+        heading = (360 - event.alpha) % 360; // Android
+      }
+      if (heading === null || isNaN(heading)) return;
+
+      if (lastRawHeading === null) {
+        continuousHeading = heading;
+      } else {
+        let delta = heading - lastRawHeading;
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        continuousHeading += delta;
+      }
+      lastRawHeading = heading;
+
+      document.getElementById('compassDial').style.transform = `rotate(${-continuousHeading}deg)`;
+
+      // Kıble hizalama kontrolü (±5 derece)
+      const diff = Math.abs(((heading - currentQiblaAngle + 540) % 360) - 180);
+      const banner = document.getElementById('qiblaAlignBanner');
+      const card = document.getElementById('qiblaCard');
+
+      if (diff <= 5) {
+        banner.textContent = '✅ Kıble Yönündesiniz';
+        banner.className = 'text-xs font-bold py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 mb-4';
+        card.classList.add('border-emerald-500');
+        if (!wasAligned && navigator.vibrate) navigator.vibrate(40);
+        wasAligned = true;
+      } else {
+        banner.textContent = `Kıbleye dönmek için ibreyi üstteki işarete getirin (${Math.round(diff)}° fark)`;
+        banner.className = 'text-xs font-semibold py-2 px-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 mb-4';
+        card.classList.remove('border-emerald-500');
+        wasAligned = false;
+      }
+    }
+
+    window.startCompassSensor = async function() {
+      const btn = document.getElementById('startCompassBtn');
+      const banner = document.getElementById('qiblaAlignBanner');
+
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const response = await DeviceOrientationEvent.requestPermission();
+          if (response === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+            compassActive = true;
+            btn.textContent = '✓ Pusula Aktif';
+            btn.classList.replace('bg-emerald-700', 'bg-stone-700');
+          } else {
+            banner.textContent = 'Pusula izni reddedildi. Telefon ayarlarından tarayıcı hareket iznini açabilirsiniz.';
+          }
+        } catch (err) {
+          banner.textContent = 'Pusula başlatılamadı: ' + err.message;
+        }
+      } else if ('ondeviceorientationabsolute' in window) {
+        window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        compassActive = true;
+        btn.textContent = '✓ Pusula Aktif';
+        btn.classList.replace('bg-emerald-700', 'bg-stone-700');
+      } else if ('DeviceOrientationEvent' in window) {
+        window.addEventListener('deviceorientation', handleOrientation, true);
+        compassActive = true;
+        btn.textContent = '✓ Pusula Aktif';
+        btn.classList.replace('bg-emerald-700', 'bg-stone-700');
+      } else {
+        banner.textContent = 'Bu cihazda pusula sensörü yok; ok Kuzey yönüne göre Kıbleyi gösterir.';
+      }
+    };
+
     // Tema Yönetimi
     const themeToggle = document.getElementById('themeToggle');
     const savedTheme = localStorage.getItem('theme');
@@ -192,7 +471,6 @@
     let cachedTimes = [];
     let countdownInterval = null;
 
-    // Varsayılan Konum (Ankara / Çankaya - İlk açılışta boş kalmaması için)
     let currentLocation = JSON.parse(localStorage.getItem('selectedLocation')) || {
       cityId: "506",
       cityName: "ANKARA",
@@ -218,9 +496,7 @@
           `<option value="${c.SehirID}" ${c.SehirID === currentLocation.cityId ? 'selected' : ''}>${c.SehirAdi}</option>`
         ).join('');
         await loadDistricts(currentLocation.cityId, currentLocation.districtId);
-      } catch (e) {
-        console.warn("Şehir listesi çevrimdışı modda:", e);
-      }
+      } catch (e) {}
     }
 
     async function loadDistricts(cityId, preselectDistrictId = null) {
@@ -244,9 +520,7 @@
           localStorage.setItem('selectedLocation', JSON.stringify(currentLocation));
           await fetchPrayerTimes(currentLocation.districtId, true);
         }
-      } catch (e) {
-        console.warn("İlçe listesi çevrimdışı modda:", e);
-      }
+      } catch (e) {}
     }
 
     citySelect.addEventListener('change', async (e) => {
@@ -254,6 +528,8 @@
       const cityName = e.target.options[e.target.selectedIndex].text;
       currentLocation.cityId = cityId;
       currentLocation.cityName = cityName;
+      usingGPS = false;
+      updateQiblaFromCity();
       await loadDistricts(cityId, null);
     });
 
@@ -283,7 +559,6 @@
       const localData = JSON.parse(localStorage.getItem(cacheKey) || 'null');
       const todayStr = getTodayFormatted();
 
-      // Önbellekte bugünün verisi varsa ve zorunlu yenileme değilse anında göster
       if (localData && localData.some(item => item.MiladiTarihKisa === todayStr) && !forceRefresh) {
         cachedTimes = localData;
         renderTodayTimes();
@@ -303,7 +578,6 @@
           return;
         }
       } catch (err) {
-        // Yedek Diyanet Metodu (Aladhan Method 13)
         try {
           const now = new Date();
           const resAlt = await fetch(`https://api.aladhan.com/v1/calendarByCity/${now.getFullYear()}/${now.getMonth() + 1}?city=${encodeURIComponent(currentLocation.cityName)}&country=Turkey&method=13`);
@@ -417,19 +691,16 @@
       countdownInterval = setInterval(updateCountdownAndHighlight, 1000);
     }
 
-    // Firebase'den Günün Ayeti ve Hadisini Çekme
     async function loadDailyContent() {
       const now = new Date();
       const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-      // Önce yerel önbellekten hızlı göster
       const cachedDaily = JSON.parse(localStorage.getItem('daily_content_cache') || 'null');
       if (cachedDaily) {
         applyContentToUI(cachedDaily);
       }
 
       try {
-        // 1. Önce bugünün tarihine özel kayıt var mı bak
         const todayRef = doc(db, "gunluk_icerikler", isoDate);
         const todaySnap = await getDoc(todayRef);
 
@@ -440,7 +711,6 @@
           return;
         }
 
-        // 2. Bugüne özel kayıt yoksa yedek havuzdan günün sırasına göre seç
         const allSnap = await getDocs(collection(db, "gunluk_icerikler"));
         if (!allSnap.empty) {
           const pool = [];
@@ -451,9 +721,7 @@
           localStorage.setItem('daily_content_cache', JSON.stringify(picked));
           applyContentToUI(picked);
         }
-      } catch (err) {
-        console.warn("İçerik çevrimdışı önbellekten gösteriliyor:", err);
-      }
+      } catch (err) {}
     }
 
     function applyContentToUI(data) {
@@ -463,7 +731,6 @@
       if (data.hadisKaynak) document.getElementById('hadisSource').textContent = data.hadisKaynak;
     }
 
-    // Paylaş / Kopyala Fonksiyonu
     window.shareText = async function(type) {
       const text = type === 'ayet'
         ? `Günün Ayeti:\n${document.getElementById('ayetText').textContent}\n(${document.getElementById('ayetSource').textContent})`
@@ -481,15 +748,14 @@
       setTimeout(() => toast.classList.add('opacity-0'), 2000);
     };
 
-    // Service Worker Kaydı (PWA & Çevrimdışı Çalışma)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
-    // Başlat
     fetchPrayerTimes(currentLocation.districtId, false);
     loadCities();
     loadDailyContent();
+    updateQiblaFromCity();
   </script>
 </body>
 </html>
